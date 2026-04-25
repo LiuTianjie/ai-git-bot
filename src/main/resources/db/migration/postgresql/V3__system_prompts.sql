@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS system_prompts (
     updated_at TIMESTAMP NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS ux_system_prompts_default_entry
+CREATE UNIQUE INDEX IF NOT EXISTS uq_system_prompts_default_entry
     ON system_prompts(default_entry) WHERE default_entry = TRUE;
 
 INSERT INTO system_prompts (name, review_system_prompt, issue_agent_system_prompt, default_entry, created_at, updated_at)
