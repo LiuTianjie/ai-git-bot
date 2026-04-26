@@ -238,11 +238,11 @@ public class WriterAgentService {
             List<String> args = request.getArgs() != null ? request.getArgs() : List.of();
             try {
                 if ("get-issue".equals(tool)) {
-                    Long requestedIssue = args.isEmpty() ? issueNumber : Long.parseLong(args.get(0));
+                    Long requestedIssue = parseIssueNumber(args, issueNumber);
                     results.add(new ToolResult(true, 0,
                             toJson(curateIssue(repositoryClient.getIssueDetails(owner, repo, requestedIssue))), ""));
                 } else if ("search-issues".equals(tool)) {
-                    String query = args.isEmpty() ? "" : args.get(0);
+                    String query = firstArgOrDefault(args, "");
                     results.add(new ToolResult(true, 0,
                             toJson(repositoryClient.searchIssues(owner, repo, query).stream()
                                     .limit(10)
@@ -260,6 +260,18 @@ public class WriterAgentService {
             }
         }
         return results;
+    }
+
+    private Long parseIssueNumber(List<String> args, Long defaultIssueNumber) {
+        String value = firstArgOrDefault(args, null);
+        if (value == null || value.isBlank()) {
+            return defaultIssueNumber;
+        }
+        return Long.parseLong(value);
+    }
+
+    private String firstArgOrDefault(List<String> args, String defaultValue) {
+        return args == null || args.isEmpty() ? defaultValue : args.get(0);
     }
 
     private boolean isIssueAuthor(String owner, String repo, Long issueNumber, WebhookPayload payload) {
