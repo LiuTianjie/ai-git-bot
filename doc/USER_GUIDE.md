@@ -174,11 +174,12 @@ Bots are the core entities that connect an AI provider with a Git provider. Navi
 2. Fill in the form:
    - **Name**: A unique name for the bot (e.g., "Code Reviewer")
    - **Username**: The Git username the bot uses (e.g., "ai_bot"). This is used to detect and ignore the bot's own actions, and as the mention alias (e.g., `@ai_bot`)
-   - **System Prompt**: Select one of the prompt entries configured under **System settings → System prompts**. Use **Preview** next to the dropdown to review the code-review and issue-agent instructions before saving.
+   - **Bot Type**: Choose **Coding bot** for pull-request reviews and issue implementation, or **Writer bot** for technical-writing assistance on issues.
+   - **System Prompt**: Select one of the prompt entries configured under **System settings → System prompts**. Use **Preview** next to the dropdown to review the code-review, issue-agent, and writer-agent instructions before saving.
    - **AI Integration**: Select an AI integration from the dropdown
    - **Git Integration**: Select a Git integration from the dropdown
    - **Enabled**: Whether the bot is active
-   - **Agent Enabled**: Whether the AI agent feature (issue implementation) is active for this bot
+   - **Agent Enabled**: Whether the AI agent feature (issue implementation) is active for a coding bot. This option is hidden for writer bots.
 3. Click **Save**
 
 ### Webhook URL
@@ -215,6 +216,27 @@ The dashboard and bot list show per-bot statistics:
 - **Last Webhook**: Timestamp of the most recent webhook call
 - **Last Error**: If the last operation failed, the error message and timestamp are displayed
 
+### Bot Types
+
+#### Coding bot
+
+Coding bots keep the existing behavior:
+
+- Review pull requests when PR webhooks arrive.
+- Respond to bot mentions in PR comments and inline review comments.
+- If **Agent Enabled** is selected, start the issue implementation workflow when the bot is assigned to an issue.
+
+#### Writer bot
+
+Writer bots are for creating first-class issue drafts:
+
+- Ignore pull-request, PR review, and inline code-review events.
+- Start a technical-writing workflow when assigned to an issue.
+- Review the originating issue for completeness, consistency, plausibility, testability, and implementation readiness.
+- Ask the issue author the minimum necessary follow-up questions when critical details are missing. The workflow waits for the original author before proceeding.
+- Use read-only issue tools (`get-issue`, `search-issues`) to inspect the current issue or related issues.
+- When no critical questions remain, create a new issue titled with the `AI Created Issue:` prefix and link it back to the originating issue.
+
 ## System Prompt Entries
 
 System prompts are managed in **System settings → System prompts**. A prompt entry contains:
@@ -222,6 +244,7 @@ System prompts are managed in **System settings → System prompts**. A prompt e
 - **Name**
 - **Review System-Prompt**: Used for pull-request reviews and bot conversations on PRs
 - **Issue-Agent System-Prompt**: Used when the agent implements assigned issues
+- **Writer-Agent System-Prompt**: Used when a writer bot improves assigned issues
 
 You can add, clone, edit, and delete prompt entries. The built-in **Default** entry is always present and cannot be deleted. It is initialized from `prompts/default.md` for reviews and `prompts/agent.md` for issue-agent work. A prompt entry cannot be deleted while one or more bots still use it; reassign those bots first.
 

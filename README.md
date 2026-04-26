@@ -241,6 +241,7 @@ This starts:
 
 3. **Create a Bot:**
    - Go to **Bots → New Bot**
+   - Choose **Coding bot** for pull-request review/issue implementation, or **Writer bot** for technical-writing issue drafts
    - Select your AI and Git integrations
    - Select a system prompt entry from **System settings**
    - Copy the generated **Webhook URL**
