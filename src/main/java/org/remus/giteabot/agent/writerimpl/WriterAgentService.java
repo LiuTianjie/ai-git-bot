@@ -208,7 +208,6 @@ public class WriterAgentService {
                 if (branchSwitch.selectedBranch() != null
                         && !branchSwitch.selectedBranch().equals(session.getBranchName())) {
                     sessionService.setBranchName(session, branchSwitch.selectedBranch());
-                    session.setBranchName(branchSwitch.selectedBranch());
                 }
                 List<ToolResult> results = executeTools(owner, repo, issueNumber, workspaceDir,
                         branchSwitch.remainingToolRequests());
