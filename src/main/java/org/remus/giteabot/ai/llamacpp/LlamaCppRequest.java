@@ -2,6 +2,7 @@ package org.remus.giteabot.ai.llamacpp;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Data;
 
@@ -86,5 +87,7 @@ public class LlamaCppRequest {
      */
     @JsonProperty("cache_prompt")
     private Boolean cachePrompt;
-}
 
+    @JsonProperty("mcp_servers")
+    private List<JsonNode> mcpServers;
+}

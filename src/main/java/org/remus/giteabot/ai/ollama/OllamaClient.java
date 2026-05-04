@@ -3,8 +3,11 @@ package org.remus.giteabot.ai.ollama;
 import lombok.extern.slf4j.Slf4j;
 import org.remus.giteabot.ai.AbstractAiClient;
 import org.remus.giteabot.ai.AiMessage;
+import org.remus.giteabot.ai.McpConfigurationData;
+import org.remus.giteabot.ai.McpConfigurationMapper;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,17 +35,31 @@ public class OllamaClient extends AbstractAiClient {
     @Override
     protected String sendReviewRequest(String systemPrompt, String effectiveModel,
                                        int maxTokens, String userMessage) {
+        return sendReviewRequest(systemPrompt, effectiveModel, maxTokens, userMessage, null);
+    }
+
+    @Override
+    protected String sendReviewRequest(String systemPrompt, String effectiveModel,
+                                       int maxTokens, String userMessage,
+                                       McpConfigurationData mcpConfiguration) {
         List<OllamaRequest.Message> messages = new ArrayList<>();
         messages.add(OllamaRequest.Message.builder().role("system").content(systemPrompt).build());
         messages.add(OllamaRequest.Message.builder().role("user").content(userMessage).build());
 
         boolean useJsonMode = shouldUseJsonMode(systemPrompt);
-        return doRequest(effectiveModel, messages, maxTokens, "review", useJsonMode);
+        return doRequest(effectiveModel, messages, maxTokens, "review", useJsonMode, mcpConfiguration);
     }
 
     @Override
     protected String sendChatRequest(String systemPrompt, String effectiveModel,
                                      int maxTokens, List<AiMessage> conversationMessages) {
+        return sendChatRequest(systemPrompt, effectiveModel, maxTokens, conversationMessages, null);
+    }
+
+    @Override
+    protected String sendChatRequest(String systemPrompt, String effectiveModel,
+                                     int maxTokens, List<AiMessage> conversationMessages,
+                                     McpConfigurationData mcpConfiguration) {
         List<OllamaRequest.Message> messages = new ArrayList<>();
         messages.add(OllamaRequest.Message.builder().role("system").content(systemPrompt).build());
 
@@ -54,7 +71,7 @@ public class OllamaClient extends AbstractAiClient {
         }
 
         boolean useJsonMode = shouldUseJsonMode(systemPrompt);
-        return doRequest(effectiveModel, messages, maxTokens, "chat", useJsonMode);
+        return doRequest(effectiveModel, messages, maxTokens, "chat", useJsonMode, mcpConfiguration);
     }
 
     @Override
@@ -85,13 +102,20 @@ public class OllamaClient extends AbstractAiClient {
 
     private String doRequest(String model, List<OllamaRequest.Message> messages,
                              int maxTokens, String context, boolean useJsonMode) {
+        return doRequest(model, messages, maxTokens, context, useJsonMode, null);
+    }
+
+    private String doRequest(String model, List<OllamaRequest.Message> messages,
+                             int maxTokens, String context, boolean useJsonMode,
+                             McpConfigurationData mcpConfiguration) {
         OllamaRequest.OllamaRequestBuilder requestBuilder = OllamaRequest.builder()
                 .model(model)
                 .messages(messages)
                 .stream(false)
                 .options(OllamaRequest.Options.builder()
                         .numPredict(maxTokens)
-                        .build());
+                        .build())
+                .mcpServers(McpConfigurationMapper.toMcpServers(mcpConfiguration, "Ollama"));
 
         if (useJsonMode) {
             requestBuilder.format("json");
@@ -100,13 +124,32 @@ public class OllamaClient extends AbstractAiClient {
 
         OllamaRequest request = requestBuilder.build();
 
-        OllamaResponse response = restClient.post()
-                .uri("/api/chat")
-                .body(request)
-                .retrieve()
-                .body(OllamaResponse.class);
+        OllamaResponse response = executeRequest(request, mcpConfiguration, context);
 
         return extractText(response, context);
+    }
+
+    private OllamaResponse executeRequest(OllamaRequest request, McpConfigurationData mcpConfiguration,
+                                          String context) {
+        try {
+            return restClient.post()
+                    .uri("/api/chat")
+                    .body(request)
+                    .retrieve()
+                    .body(OllamaResponse.class);
+        } catch (RestClientException e) {
+            if (mcpConfiguration == null) {
+                throw e;
+            }
+            log.error("MCP configuration '{}' could not be applied to Ollama {} request; retrying without MCP: {}",
+                    mcpConfiguration.name(), context, e.getMessage(), e);
+            request.setMcpServers(null);
+            return restClient.post()
+                    .uri("/api/chat")
+                    .body(request)
+                    .retrieve()
+                    .body(OllamaResponse.class);
+        }
     }
 
     private String extractText(OllamaResponse response, String context) {

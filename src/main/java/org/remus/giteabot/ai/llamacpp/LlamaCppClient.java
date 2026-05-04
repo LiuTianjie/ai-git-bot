@@ -3,8 +3,11 @@ package org.remus.giteabot.ai.llamacpp;
 import lombok.extern.slf4j.Slf4j;
 import org.remus.giteabot.ai.AbstractAiClient;
 import org.remus.giteabot.ai.AiMessage;
+import org.remus.giteabot.ai.McpConfigurationData;
+import org.remus.giteabot.ai.McpConfigurationMapper;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.util.List;
 import java.util.Locale;
@@ -64,17 +67,31 @@ public class LlamaCppClient extends AbstractAiClient {
     @Override
     protected String sendReviewRequest(String systemPrompt, String effectiveModel,
                                        int maxTokens, String userMessage) {
+        return sendReviewRequest(systemPrompt, effectiveModel, maxTokens, userMessage, null);
+    }
+
+    @Override
+    protected String sendReviewRequest(String systemPrompt, String effectiveModel,
+                                       int maxTokens, String userMessage,
+                                       McpConfigurationData mcpConfiguration) {
         String prompt = buildChatPrompt(systemPrompt, userMessage);
         String grammar = shouldUseJsonGrammar(systemPrompt) ? AGENT_JSON_GRAMMAR : null;
-        return doRequest(prompt, maxTokens, "review", grammar);
+        return doRequest(prompt, maxTokens, "review", grammar, mcpConfiguration);
     }
 
     @Override
     protected String sendChatRequest(String systemPrompt, String effectiveModel,
                                      int maxTokens, List<AiMessage> conversationMessages) {
+        return sendChatRequest(systemPrompt, effectiveModel, maxTokens, conversationMessages, null);
+    }
+
+    @Override
+    protected String sendChatRequest(String systemPrompt, String effectiveModel,
+                                     int maxTokens, List<AiMessage> conversationMessages,
+                                     McpConfigurationData mcpConfiguration) {
         String prompt = buildChatPrompt(systemPrompt, conversationMessages);
         String grammar = shouldUseJsonGrammar(systemPrompt) ? AGENT_JSON_GRAMMAR : null;
-        return doRequest(prompt, maxTokens, "chat", grammar);
+        return doRequest(prompt, maxTokens, "chat", grammar, mcpConfiguration);
     }
 
     @Override
@@ -134,6 +151,11 @@ public class LlamaCppClient extends AbstractAiClient {
     }
 
     private String doRequest(String prompt, int maxTokens, String context, String grammar) {
+        return doRequest(prompt, maxTokens, context, grammar, null);
+    }
+
+    private String doRequest(String prompt, int maxTokens, String context, String grammar,
+                             McpConfigurationData mcpConfiguration) {
         LlamaCppRequest.LlamaCppRequestBuilder requestBuilder = LlamaCppRequest.builder()
                 .prompt(prompt)
                 .nPredict(maxTokens)
@@ -145,7 +167,8 @@ public class LlamaCppClient extends AbstractAiClient {
                 .repeatPenalty(1.1)
                 .frequencyPenalty(0.0)
                 .presencePenalty(0.0)
-                .cachePrompt(true);
+                .cachePrompt(true)
+                .mcpServers(McpConfigurationMapper.toMcpServers(mcpConfiguration, "llama.cpp"));
 
         if (grammar != null) {
             requestBuilder.grammar(grammar);
@@ -157,13 +180,32 @@ public class LlamaCppClient extends AbstractAiClient {
         log.debug("llama.cpp request to /completion: promptLength={}, maxTokens={}, grammar={}",
                 prompt.length(), maxTokens, grammar != null);
 
-        LlamaCppResponse response = restClient.post()
-                .uri("/completion")
-                .body(request)
-                .retrieve()
-                .body(LlamaCppResponse.class);
+        LlamaCppResponse response = executeRequest(request, mcpConfiguration, context);
 
         return extractText(response, context);
+    }
+
+    private LlamaCppResponse executeRequest(LlamaCppRequest request, McpConfigurationData mcpConfiguration,
+                                            String context) {
+        try {
+            return restClient.post()
+                    .uri("/completion")
+                    .body(request)
+                    .retrieve()
+                    .body(LlamaCppResponse.class);
+        } catch (RestClientException e) {
+            if (mcpConfiguration == null) {
+                throw e;
+            }
+            log.error("MCP configuration '{}' could not be applied to llama.cpp {} request; retrying without MCP: {}",
+                    mcpConfiguration.name(), context, e.getMessage(), e);
+            request.setMcpServers(null);
+            return restClient.post()
+                    .uri("/completion")
+                    .body(request)
+                    .retrieve()
+                    .body(LlamaCppResponse.class);
+        }
     }
 
     private String extractText(LlamaCppResponse response, String context) {
@@ -190,4 +232,3 @@ public class LlamaCppClient extends AbstractAiClient {
         return result;
     }
 }
-
