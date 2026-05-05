@@ -575,7 +575,7 @@ flowchart TD
     G -- Yes --> H{Bot mentioned?}
     H -- No --> X
     H -- Yes --> I{Is PR?}
-    I -- Yes --> J["handleBotCommand()"]
+    I -- Yes --> J["handlePrComment() → resume PR session or handleBotCommand()"]
     I -- No --> K["handleIssueComment() → writer or coding issue flow"]
     G -- No --> L{Issue assigned to bot?}
     L -- Yes --> M["handleIssueAssigned() → writer or coding issue flow"]
