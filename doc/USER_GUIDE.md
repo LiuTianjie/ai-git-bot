@@ -50,6 +50,7 @@ AI Integrations define connections to AI providers. Navigate to **AI Integration
      |----------|-----------------|------------------|
      | `anthropic` | `https://api.anthropic.com` | claude-opus-4-7, claude-sonnet-4-6, claude-haiku-4-5-20251001 |
      | `openai` | `https://api.openai.com` | gpt-5.5, gpt-5.4, gpt-5.4-mini, gpt-5.3-codex |
+     | `google` | `https://generativelanguage.googleapis.com` | gemini-2.5-pro, gemini-2.5-flash, gemini-2.0-flash |
      | `ollama` | `http://localhost:11434` | *(user-configured)* |
      | `llamacpp` | `http://localhost:8081` | *(user-configured)* |
      
@@ -82,6 +83,17 @@ AI Integrations define connections to AI providers. Navigate to **AI Integration
 - Enter model names without the `models/` prefix (for example, `gemini-2.5-flash`) or with the prefix if copied from Google documentation
 - Leave **API Version** blank; the integration currently targets the Gemini REST `v1beta` API surface
 - Invalid API keys or model names are returned as Google AI request failures with the provider's error message; API keys are sent in the `x-goog-api-key` header and are not included in logged URLs
+
+To create a Google AI integration in the admin UI:
+
+| Field | What to enter |
+|-------|---------------|
+| **Provider Type** | Select `Google AI (Gemini)`. The saved provider type is `google`. |
+| **API URL** | Keep the default `https://generativelanguage.googleapis.com` unless you are using a compatible proxy. |
+| **API Key** | Enter your Gemini API key from Google AI Studio. |
+| **API Version** | Leave blank. |
+| **Model** | Select a suggested Gemini model or enter the exact Gemini model ID. |
+| **Max Tokens** and chunk limits | Start with the defaults, then reduce chunk limits if the selected model reports context/token-limit errors. |
 
 ##### OpenAI-Compatible APIs
 

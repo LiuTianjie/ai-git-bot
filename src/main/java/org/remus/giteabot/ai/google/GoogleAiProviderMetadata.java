@@ -28,6 +28,11 @@ public class GoogleAiProviderMetadata implements AiProviderMetadata {
     }
 
     @Override
+    public String getDisplayName() {
+        return "Google AI (Gemini)";
+    }
+
+    @Override
     public String getDefaultApiUrl() {
         return DEFAULT_API_URL;
     }
