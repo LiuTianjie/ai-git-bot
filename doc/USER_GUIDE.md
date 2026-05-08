@@ -2,7 +2,7 @@
 
 ## Overview
 
-AI-Git-Bot is a **Gateway application** that provides a web-based management interface for creating and managing AI-powered code review bots. Each bot connects an AI provider (Anthropic, OpenAI, Ollama, or llama.cpp) with a Git provider (Gitea, GitHub, GitHub Enterprise, GitLab, or Bitbucket Cloud) and has its own unique webhook URL. The Gateway architecture allows you to manage multiple bots with different configurations across different Git platforms — all from a single dashboard.
+AI-Git-Bot is a **Gateway application** that provides a web-based management interface for creating and managing AI-powered code review bots. Each bot connects an AI provider (Anthropic, OpenAI, Google AI, Ollama, or llama.cpp) with a Git provider (Gitea, GitHub, GitHub Enterprise, GitLab, or Bitbucket Cloud) and has its own unique webhook URL. The Gateway architecture allows you to manage multiple bots with different configurations across different Git platforms — all from a single dashboard.
 
 Besides classic pull-request review bots, AI-Git-Bot also supports **issue-based agent workflows**:
 
@@ -50,6 +50,7 @@ AI Integrations define connections to AI providers. Navigate to **AI Integration
      |----------|-----------------|------------------|
      | `anthropic` | `https://api.anthropic.com` | claude-opus-4-7, claude-sonnet-4-6, claude-haiku-4-5-20251001 |
      | `openai` | `https://api.openai.com` | gpt-5.5, gpt-5.4, gpt-5.4-mini, gpt-5.3-codex |
+     | `google` | `https://generativelanguage.googleapis.com` | gemini-2.5-pro, gemini-2.5-flash, gemini-2.0-flash |
      | `ollama` | `http://localhost:11434` | *(user-configured)* |
      | `llamacpp` | `http://localhost:8081` | *(user-configured)* |
      
@@ -74,6 +75,25 @@ AI Integrations define connections to AI providers. Navigate to **AI Integration
 - Requires an API key
 - Compatible with OpenAI API proxies by changing the API URL
 - Suggested models: gpt-5.5, gpt-5.4, gpt-5.4-mini, gpt-5.3-codex
+
+#### Google AI
+- Requires a Gemini API key from Google AI Studio; the key is stored encrypted at rest
+- Uses the Gemini REST API at `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`
+- Suggested models: gemini-2.5-pro, gemini-2.5-flash, gemini-2.0-flash
+- Enter model names without the `models/` prefix (for example, `gemini-2.5-flash`) or with the prefix if copied from Google documentation
+- Leave **API Version** blank; the integration currently targets the Gemini REST `v1beta` API surface
+- Invalid API keys or model names are returned as Google AI request failures with the provider's error message; API keys are sent in the `x-goog-api-key` header and are not included in logged URLs
+
+To create a Google AI integration in the admin UI:
+
+| Field | What to enter |
+|-------|---------------|
+| **Provider Type** | Select `gemini`. The saved provider type is `google`. |
+| **API URL** | Keep the default `https://generativelanguage.googleapis.com` unless you are using a compatible proxy. |
+| **API Key** | Enter your Gemini API key from Google AI Studio. |
+| **API Version** | Leave blank. |
+| **Model** | Select a suggested Gemini model or enter the exact Gemini model ID. |
+| **Max Tokens** and chunk limits | Start with the defaults, then reduce chunk limits if the selected model reports context/token-limit errors. |
 
 ##### OpenAI-Compatible APIs
 
@@ -224,11 +244,45 @@ Bots are the core entities that connect an AI provider with a Git provider. Navi
    - **Username**: The Git username the bot uses (e.g., "ai_bot"). This is used to detect and ignore the bot's own actions, and as the mention alias (e.g., `@ai_bot`)
    - **Bot Type**: Choose **Coding bot** for pull-request reviews and issue implementation, or **Writer bot** for technical-writing assistance on issues.
    - **System Prompt**: Select one of the prompt entries configured under **System settings → System prompts**. Use **Preview** next to the dropdown to review the code-review, issue-agent, and writer-agent instructions before saving.
+   - **MCP Configuration** *(optional)*: Select a saved MCP configuration. Use **Details** next to the dropdown to open a read-only list of the currently selected MCP tools.
    - **AI Integration**: Select an AI integration from the dropdown
    - **Git Integration**: Select a Git integration from the dropdown
    - **Enabled**: Whether the bot is active
    - **Agent Enabled**: Whether the AI agent feature (issue implementation) is active for a coding bot. This option is hidden for writer bots.
 3. Click **Save**
+
+## MCP Configurations and Tool Selection
+
+MCP support is managed in **System settings → MCP configurations**.
+
+### Create or Edit an MCP Configuration
+
+1. Open **System settings**.
+2. In **MCP configurations**, click **Add** or **Edit**.
+3. Enter a name and your MCP server JSON.
+4. Click **Save and select tools**.
+
+After saving, the application contacts all MCP servers defined in the JSON, discovers tools, and opens the tool selection screen.
+
+### Select Which MCP Tools Are Exposed
+
+The MCP tool selection screen provides:
+
+- server-grouped tool rows
+- free-text filter
+- server filter
+- sortable columns
+- page size + next/previous paging
+- per-row selection and **select all visible** in the table header
+
+Only selected tools are persisted and appended to system prompts (whitelist behavior). Unselected tools are not exposed to the AI agent.
+
+You can open tool selection at any time (without changing JSON) via:
+
+- **System settings → MCP configurations → Tools**
+- **Edit MCP Configuration → Select tools**
+
+For an end-to-end MCP workflow guide (JSON creation, whitelist selection, bot details dialog, and transparency/audit notes), see [MCP Server Handling](MCP_SERVER_HANDLING.md).
 
 ### Webhook URL
 
