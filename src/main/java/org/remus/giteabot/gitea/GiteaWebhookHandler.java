@@ -264,7 +264,9 @@ public class GiteaWebhookHandler {
             return ResponseEntity.ok("session closed");
         }
 
-        if (("opened".equals(action) && hasBotReviewer(bot, payload))
+        if ("opened".equals(action)
+                || "reopened".equals(action)
+                || "synchronized".equals(action)
                 || ("assigned".equals(action) && isBotAssignee(bot, payload))
                 || ("review_requested".equals(action) && isRequestedReviewer(bot, payload))) {
             botWebhookService.reviewPullRequest(bot, payload);
@@ -273,14 +275,6 @@ public class GiteaWebhookHandler {
 
         log.debug("Unhandled Gitea PR action '{}', ignoring", action);
         return ResponseEntity.ok("ignored");
-    }
-
-    private boolean hasBotReviewer(Bot bot, WebhookPayload payload) {
-        return bot.getUsername() != null
-                && payload.getPullRequest() != null
-                && payload.getPullRequest().getRequestedReviewers() != null
-                && payload.getPullRequest().getRequestedReviewers().stream()
-                .anyMatch(reviewer -> bot.getUsername().equalsIgnoreCase(reviewer.getLogin()));
     }
 
     private boolean isRequestedReviewer(Bot bot, WebhookPayload payload) {

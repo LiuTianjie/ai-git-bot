@@ -1,6 +1,7 @@
 name: Build and Push Docker Image
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -33,15 +34,18 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: tmseidel/ai-git-bot
+          images: nickname4th/ai-git-bot
           tags: |
-            type=raw,value=latest
-            type=raw,value=${{ steps.version.outputs.VERSION }}
+            type=raw,value=1.5.0-auto-review
+            type=raw,value=${{ steps.version.outputs.VERSION }}-auto-review
+            type=raw,value=latest-auto-review
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile.slim
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

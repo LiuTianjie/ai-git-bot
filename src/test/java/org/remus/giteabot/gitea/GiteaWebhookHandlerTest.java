@@ -162,19 +162,29 @@ class GiteaWebhookHandlerTest {
 
         ResponseEntity<String> response = handler.handleWebhook(bot, payload);
 
-        assertEquals("ignored", response.getBody());
-        verify(botWebhookService, never()).reviewPullRequest(any(), any());
+        assertEquals("review triggered", response.getBody());
+        verify(botWebhookService).reviewPullRequest(eq(bot), any(WebhookPayload.class));
     }
 
     @Test
-    void prOpenedEvent_withoutBotReviewer_isIgnored() {
+    void prReopenedEvent_routesToReviewPullRequest() {
+        Map<String, Object> payload = buildPrEventPayload("reopened");
+
+        ResponseEntity<String> response = handler.handleWebhook(bot, payload);
+
+        assertEquals("review triggered", response.getBody());
+        verify(botWebhookService).reviewPullRequest(eq(bot), any(WebhookPayload.class));
+    }
+
+    @Test
+    void prOpenedEvent_withoutBotReviewer_routesToReviewPullRequest() {
         Map<String, Object> payload = buildPrEventPayload("opened");
         ((Map<String, Object>) payload.get("pull_request")).put("requested_reviewers", java.util.List.of());
 
         ResponseEntity<String> response = handler.handleWebhook(bot, payload);
 
-        assertEquals("ignored", response.getBody());
-        verify(botWebhookService, never()).reviewPullRequest(any(), any());
+        assertEquals("review triggered", response.getBody());
+        verify(botWebhookService).reviewPullRequest(eq(bot), any(WebhookPayload.class));
     }
 
     @Test
