@@ -3,9 +3,12 @@ package org.remus.giteabot.ai.anthropic;
 import org.remus.giteabot.admin.AiIntegration;
 import org.remus.giteabot.ai.AiClient;
 import org.remus.giteabot.ai.AiProviderMetadata;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -17,6 +20,8 @@ public class AnthropicProviderMetadata implements AiProviderMetadata {
     public static final String PROVIDER_TYPE = "anthropic";
     public static final String DEFAULT_API_URL = "https://api.anthropic.com";
     public static final String DEFAULT_API_VERSION = "2023-06-01";
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration READ_TIMEOUT = Duration.ofMinutes(5);
     public static final List<String> SUGGESTED_MODELS = List.of(
             "claude-opus-4-7",
             "claude-sonnet-4-6",
@@ -54,7 +59,15 @@ public class AnthropicProviderMetadata implements AiProviderMetadata {
             apiVersion = DEFAULT_API_VERSION;
         }
 
+        HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(CONNECT_TIMEOUT)
+                .build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(READ_TIMEOUT);
+
         return RestClient.builder()
+                .requestFactory(requestFactory)
                 .baseUrl(integration.getApiUrl())
                 .defaultHeader("x-api-key", decryptedApiKey)
                 .defaultHeader("anthropic-version", apiVersion)
@@ -75,4 +88,3 @@ public class AnthropicProviderMetadata implements AiProviderMetadata {
         );
     }
 }
-
