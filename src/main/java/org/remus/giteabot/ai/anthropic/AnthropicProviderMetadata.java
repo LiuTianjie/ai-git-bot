@@ -63,6 +63,7 @@ public class AnthropicProviderMetadata implements AiProviderMetadata {
         }
 
         RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(Timeout.of(CONNECT_TIMEOUT))
                 .setConnectionRequestTimeout(Timeout.of(CONNECT_TIMEOUT))
                 .setResponseTimeout(Timeout.of(READ_TIMEOUT))
                 .build();
@@ -70,8 +71,6 @@ public class AnthropicProviderMetadata implements AiProviderMetadata {
                 .setDefaultRequestConfig(requestConfig)
                 .build();
         HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
-        requestFactory.setConnectTimeout(CONNECT_TIMEOUT);
-        requestFactory.setConnectionRequestTimeout(CONNECT_TIMEOUT);
 
         return RestClient.builder()
                 .requestFactory(requestFactory)
